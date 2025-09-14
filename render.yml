@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ancore-site
+    env: docker
+    plan: free
+    branch: master
+    repo: https://github.com/Corex24/Ancore-pair-code
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true

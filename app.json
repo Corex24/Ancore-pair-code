@@ -1,0 +1,17 @@
+{
+    "name": "Ancore-pair",
+    "description": "Web Session Generator",
+    "logo": "https://files.catbox.moe/dmxoe7.jpeg",
+    "repository": "https://github.com/Corex24/Ancore-pair-code",
+    "keywords": [],
+    "success_url": "/", 
+    "buildpacks": [{ "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest" } ],
+    "env": {      
+      "PORT": {
+        "description": "Port for web app.4000,5000,3000... any!",
+        "value": "5000",
+        "required": false 
+      }
+    }   
+
+}

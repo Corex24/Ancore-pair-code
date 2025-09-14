@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ancore QR Code - Scan to connect your WhatsApp bot quickly.">
+  <meta name="theme-color" content="#0a0e1a">
+  <title>Ancore QR Code</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(800px 400px at 10% -10%, #0f1a30 0%, #0a0e1a 50%, #070b14 100%),
+        linear-gradient(120deg, #080c18 0%, #0a0e1a 50%, #0f1525 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #e8f0ff;
+    }
+    .main {
+      background: rgba(15, 25, 45, 0.9);
+      border: 1px solid rgba(100, 160, 255, 0.2);
+      border-radius: 16px;
+      padding: 28px 20px;
+      width: 340px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    #qr-image {
+      width: 100%;
+      max-width: 260px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 0 12px rgba(74,124,255,0.4);
+      transition: opacity 0.5s ease-in-out;
+    }
+    h2 {
+      font-size: 22px;
+      margin: 0 0 8px;
+      background: linear-gradient(90deg, #4a7cff, #00c6ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.legend {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #a8c0e4;
+    }
+    progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 8px 0 16px;
+    }
+    progress::-webkit-progress-bar {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    progress::-webkit-progress-value {
+      background: linear-gradient(90deg, #4a7cff, #00c6ff);
+    }
+    .reload-button {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #4a7cff, #00c6ff);
+      color: white;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform .2s;
+    }
+    .reload-button:hover { transform: translateY(-2px); }
+    .expired {
+      color: #ff4d7d;
+      font-weight: bold;
+      margin-top: 12px;
+    }
+    .glowing-text {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #a8c0e4;
+      animation: glowing 2s infinite;
+    }
+    @keyframes glowing {
+      0%,100%{ text-shadow: 0 0 6px #4a7cff; }
+      50%{ text-shadow: 0 0 18px #00c6ff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main">
+    <div id="QR-content">
+      <img id="qr-image" src="/server" alt="WhatsApp Login QR Code">
+    </div>
+    <h2 id="main">ANCORE QR CODE</h2>
+    <p class="legend" id="legend">Scan the QR code within 30s!</p>
+    <progress value="0" max="30" id="progressBar"></progress>
+    <a href="/qr" class="reload-button">Reload Page</a>
+    <div class="glowing-text">(c) Created by Corex with 💙</div>
+  </div>
+
+  <script>
+    let timeleft = 30;
+    const progressBar = document.getElementById("progressBar");
+    const mainText = document.getElementById("main");
+    const legend = document.getElementById("legend");
+    const qrImage = document.getElementById("qr-image");
+
+    let downloadTimer = setInterval(() => {
+      if (timeleft <= 0) {
+        clearInterval(downloadTimer);
+        progressBar.remove();
+        mainText.textContent = "QR Expired!";
+        legend.innerHTML = `<span class="expired">Please reload the page</span>`;
+        qrImage.style.opacity = '0';
+      } else {
+        progressBar.value = 30 - timeleft;
+        timeleft -= 1;
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

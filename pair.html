@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ancore Pair Code Generator - Connect your WhatsApp bot quickly using pair codes.">
+  <meta name="theme-color" content="#0a0e1a">
+  <title>Ancore Pair Code</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: radial-gradient(800px 400px at 10% -10%, #0f1a30 0%, #0a0e1a 50%, #070b14 100%),
+        linear-gradient(120deg, #080c18 0%, #0a0e1a 50%, #0f1525 100%);
+      color: #e8f0ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .main {
+      background: rgba(15, 25, 45, 0.9);
+      border: 1px solid rgba(100, 160, 255, 0.2);
+      border-radius: 16px;
+      padding: 32px 24px;
+      width: 360px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+    }
+    h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      background: linear-gradient(90deg, #4a7cff, #00c6ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    h6 { margin: 0 0 16px; font-weight: 400; color: #a8c0e4; }
+    .input-container {
+      display: flex;
+      margin-top: 10px;
+      gap: 8px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid rgba(100, 160, 255, 0.3);
+      font-size: 15px;
+      outline: none;
+    }
+    input:focus {
+      border-color: #4a7cff;
+      box-shadow: 0 0 6px rgba(74, 124, 255, 0.4);
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #4a7cff, #00c6ff);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .2s, background .2s;
+    }
+    button:hover { transform: translateY(-2px); }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #pair {
+      margin-top: 18px;
+      font-size: 16px;
+      word-break: break-word;
+    }
+    #copy {
+      cursor: pointer;
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(255, 77, 125, 0.1);
+      border: 1px solid rgba(255, 77, 125, 0.4);
+      color: #ff4d7d;
+      font-weight: bold;
+    }
+    .glowing-text {
+      margin-top: 16px;
+      font-size: 13px;
+      color: #a8c0e4;
+      animation: glowing 2s infinite;
+    }
+    @keyframes glowing {
+      0%,100%{ text-shadow: 0 0 6px #4a7cff; }
+      50%{ text-shadow: 0 0 18px #00c6ff; }
+    }
+  </style>
+</head>
+<body>
+  <div class="main" id="box">
+    <i class="fa fa-user" style="font-size: 36px; margin-bottom: 10px;"></i>
+    <h2>ANCORE PAIR</h2>
+    <h6>Enter your number with country code.</h6>
+    <form id="pair-form">
+      <div class="input-container">
+        <input type="tel" id="number" placeholder="23480368696669" inputmode="numeric" />
+        <button type="submit" id="submit">Enter</button>
+      </div>
+    </form>
+    <div id="pair"></div>
+    <div class="glowing-text"> Created by Corex with 💙</div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+  <script>
+    const pairBox = document.getElementById("pair");
+    const submitBtn = document.getElementById("submit");
+    const numberInput = document.getElementById("number");
+    const pairForm = document.getElementById("pair-form");
+
+    async function Copy() {
+      let obj = document.getElementById("copy");
+      let text = obj.innerText;
+      await navigator.clipboard.writeText(obj.innerText.replace("CODE: ", ""));
+      obj.innerText = "COPIED ✅";
+      obj.style.color = "#4a7cff";
+      setTimeout(() => {
+        obj.innerText = text;
+        obj.style.color = "#ff4d7d";
+      }, 1200);
+    }
+
+    pairForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true; // Disable button
+      pairBox.innerHTML = "";
+      let raw = numberInput.value.trim();
+      if (!raw) {
+        pairBox.innerHTML = `<p style="color:#ff4d7d;font-weight:bold">❗ Enter your WhatsApp number with country code</p>`;
+        submitBtn.disabled = false; // Re-enable button
+        return;
+      }
+      if (raw.replace(/[^0-9]/g, "").length < 10) { // Adjusted length check
+        pairBox.innerHTML = `<p style="color:#ff4d7d;font-weight:bold">❌ Invalid number format ❌</p>`;
+        submitBtn.disabled = false; // Re-enable button
+        return;
+      }
+      const num = raw.replace(/[^0-9]/g, "");
+      numberInput.type = "text";
+      numberInput.value = "+" + num;
+      numberInput.style.color = "#e8f0ff";
+      pairBox.innerHTML = `<p style="color:#a8c0e4;font-weight:bold">Please wait 🔎</p>`;
+      try {
+        let { data } = await axios(`/code?number=${num}`);
+        let code = data.code || "Service Unavailable";
+        pairBox.innerHTML = `<div id="copy" onclick="Copy()">CODE: <span style="color:white">${code}</span></div>`;
+      } catch (err) {
+        pairBox.innerHTML = `<p style="color:#ff4d7d">⚠️ Error fetching code. Try again.</p>`;
+      } finally {
+        submitBtn.disabled = false; // Re-enable button in all cases
+      }
+    });
+  </script>
+</body>
+</html>
