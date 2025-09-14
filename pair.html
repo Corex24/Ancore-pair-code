@@ -9,157 +9,462 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body {
+    :root {
+      --primary-gradient: linear-gradient(135deg, #4a7cff, #00c6ff);
+      --success-gradient: linear-gradient(135deg, #4caf50, #8bc34a);
+      --background-gradient: radial-gradient(800px 400px at 10% -10%, #0f1a30 0%, #0a0e1a 50%, #070b14 100%),
+                            linear-gradient(120deg, #080c18 0%, #0a0e1a 50%, #0f1525 100%);
+      --card-bg: rgba(15, 25, 45, 0.9);
+      --text-primary: #e8f0ff;
+      --text-secondary: #a8c0e4;
+      --error-color: #ff4d7d;
+      --success-color: #4caf50;
+    }
+    
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: radial-gradient(800px 400px at 10% -10%, #0f1a30 0%, #0a0e1a 50%, #070b14 100%),
-        linear-gradient(120deg, #080c18 0%, #0a0e1a 50%, #0f1525 100%);
-      color: #e8f0ff;
+      background: var(--background-gradient);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
+      color: var(--text-primary);
+      padding: 20px;
     }
+    
     .main {
-      background: rgba(15, 25, 45, 0.9);
+      background: var(--card-bg);
       border: 1px solid rgba(100, 160, 255, 0.2);
       border-radius: 16px;
       padding: 32px 24px;
-      width: 360px;
+      width: 100%;
+      max-width: 420px;
       text-align: center;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(10px);
+      transition: all 0.5s ease;
     }
+    
+    .connection-steps {
+      background: rgba(20, 35, 60, 0.6);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 0 0 20px;
+      text-align: left;
+      border-left: 4px solid #4a7cff;
+    }
+    
+    .connection-steps h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #a8c0e4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .connection-steps ol {
+      padding-left: 20px;
+      margin: 0;
+    }
+    
+    .connection-steps li {
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+    
+    .connection-steps li:last-child {
+      margin-bottom: 0;
+    }
+    
     h2 {
       margin: 0 0 8px;
       font-size: 24px;
-      background: linear-gradient(90deg, #4a7cff, #00c6ff);
+      background: var(--primary-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    h6 { margin: 0 0 16px; font-weight: 400; color: #a8c0e4; }
+    
+    h6 { 
+      margin: 0 0 16px; 
+      font-weight: 400; 
+      color: var(--text-secondary);
+    }
+    
     .input-container {
       display: flex;
       margin-top: 10px;
       gap: 8px;
     }
+    
     input {
       flex: 1;
-      padding: 10px;
+      padding: 12px 16px;
       border-radius: 10px;
       border: 1px solid rgba(100, 160, 255, 0.3);
       font-size: 15px;
       outline: none;
+      background: rgba(10, 20, 35, 0.6);
+      color: var(--text-primary);
     }
+    
     input:focus {
       border-color: #4a7cff;
       box-shadow: 0 0 6px rgba(74, 124, 255, 0.4);
     }
+    
     button {
-      padding: 10px 16px;
+      padding: 12px 20px;
       border-radius: 10px;
       border: none;
-      background: linear-gradient(135deg, #4a7cff, #00c6ff);
+      background: var(--primary-gradient);
       color: white;
       font-weight: 600;
       cursor: pointer;
-      transition: transform .2s, background .2s;
+      transition: all 0.3s ease;
     }
-    button:hover { transform: translateY(-2px); }
+    
+    button:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 6px 20px rgba(74, 124, 255, 0.4);
+    }
+    
     button:disabled {
       background: #555;
       cursor: not-allowed;
       transform: none;
+      box-shadow: none;
     }
-    #pair {
-      margin-top: 18px;
-      font-size: 16px;
-      word-break: break-word;
+    
+    #pair-result {
+      margin-top: 20px;
+      min-height: 60px;
     }
-    #copy {
-      cursor: pointer;
-      display: inline-block;
-      padding: 8px 12px;
-      border-radius: 8px;
-      background: rgba(255, 77, 125, 0.1);
-      border: 1px solid rgba(255, 77, 125, 0.4);
-      color: #ff4d7d;
+    
+    .pair-code {
+      font-size: 22px;
       font-weight: bold;
+      color: white;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px 20px;
+      border-radius: 10px;
+      margin: 10px 0;
+      display: inline-block;
+      cursor: pointer;
+      transition: all 0.3s ease;
     }
-    .glowing-text {
-      margin-top: 16px;
+    
+    .pair-code:hover {
+      background: rgba(0, 0, 0, 0.5);
+      transform: scale(1.05);
+    }
+    
+    .status-message {
+      margin: 12px 0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status-success {
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--success-color);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      display: block;
+    }
+    
+    .status-error {
+      background: rgba(244, 67, 54, 0.15);
+      color: var(--error-color);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      display: block;
+    }
+    
+    .session-info {
+      background: rgba(20, 35, 60, 0.6);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 20px 0;
+      text-align: left;
+      border-left: 4px solid var(--success-color);
+      display: none;
+    }
+    
+    .session-info h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: var(--success-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .session-id {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      word-break: break-all;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin: 12px 0;
+      position: relative;
+    }
+    
+    .copy-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .instructions {
       font-size: 13px;
-      color: #a8c0e4;
+      color: var(--text-secondary);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    
+    .glowing-text {
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
       animation: glowing 2s infinite;
     }
+    
     @keyframes glowing {
-      0%,100%{ text-shadow: 0 0 6px #4a7cff; }
-      50%{ text-shadow: 0 0 18px #00c6ff; }
+      0%, 100% { text-shadow: 0 0 6px #4a7cff; }
+      50% { text-shadow: 0 0 18px #00c6ff; }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    @media (max-width: 480px) {
+      .main {
+        padding: 24px 16px;
+      }
+      
+      .input-container {
+        flex-direction: column;
+      }
+      
+      button {
+        width: 100%;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="main" id="box">
-    <i class="fa fa-user" style="font-size: 36px; margin-bottom: 10px;"></i>
-    <h2>ANCORE PAIR</h2>
-    <h6>Enter your number with country code.</h6>
+  <div class="main">
+    <div class="connection-steps">
+      <h3><i class="fas fa-info-circle"></i> Connection Steps</h3>
+      <ol>
+        <li>Open WhatsApp on your phone</li>
+        <li>Tap <strong>Settings</strong> → <strong>Linked Devices</strong></li>
+        <li>Tap <strong>Link a Device</strong> → <strong>Link with Phone Number</strong></li>
+        <li>Enter the code shown below</li>
+      </ol>
+    </div>
+    
+    <i class="fas fa-user" style="font-size: 36px; margin-bottom: 10px;"></i>
+    <h2>ANCORE PAIR CODE</h2>
+    <h6>Enter your WhatsApp number with country code</h6>
+    
     <form id="pair-form">
       <div class="input-container">
-        <input type="tel" id="number" placeholder="23480368696669" inputmode="numeric" />
-        <button type="submit" id="submit">Enter</button>
+        <input type="tel" id="number" placeholder="2348036869669" inputmode="numeric" required />
+        <button type="submit" id="submit">Generate Code</button>
       </div>
     </form>
-    <div id="pair"></div>
-    <div class="glowing-text"> Created by Corex with 💙</div>
+    
+    <div class="status-message" id="status-message"></div>
+    
+    <div id="pair-result"></div>
+    
+    <div class="session-info" id="session-info">
+      <h3><i class="fas fa-check-circle"></i> Successfully Connected!</h3>
+      <p>Your session has been created successfully. Your session ID is:</p>
+      <div class="session-id" id="session-id">
+        <span id="session-id-text">Loading session ID...</span>
+        <button class="copy-btn" onclick="copySessionId()">
+          <i class="fas fa-copy"></i> Copy
+        </button>
+      </div>
+      <p class="instructions">
+        <i class="fas fa-exclamation-triangle"></i> Keep this session ID safe and secure. 
+        You'll need it to restore your session. This ID has also been sent to your WhatsApp.
+      </p>
+    </div>
+    
+    <div class="glowing-text">(c) Created by Corex with 💙</div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
   <script>
-    const pairBox = document.getElementById("pair");
+    const pairResult = document.getElementById("pair-result");
     const submitBtn = document.getElementById("submit");
     const numberInput = document.getElementById("number");
     const pairForm = document.getElementById("pair-form");
-
-    async function Copy() {
-      let obj = document.getElementById("copy");
-      let text = obj.innerText;
-      await navigator.clipboard.writeText(obj.innerText.replace("CODE: ", ""));
-      obj.innerText = "COPIED ✅";
-      obj.style.color = "#4a7cff";
+    const statusMessage = document.getElementById("status-message");
+    const sessionInfo = document.getElementById("session-info");
+    const sessionIdText = document.getElementById("session-id-text");
+    
+    let currentSessionId = null;
+    let statusCheckInterval = null;
+    
+    // Generate a session ID for tracking
+    function generateSessionId() {
+      let sessionId = localStorage.getItem('ancore_pair_session_id');
+      if (!sessionId) {
+        sessionId = 'pair_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('ancore_pair_session_id', sessionId);
+      }
+      return sessionId;
+    }
+    
+    // Check connection status
+    async function checkConnectionStatus() {
+      try {
+        const sessionId = generateSessionId();
+        const response = await fetch(`/code/status?sessionId=${sessionId}`);
+        const data = await response.json();
+        
+        if (data.connected && data.sessionId) {
+          // Connection successful!
+          clearInterval(statusCheckInterval);
+          
+          statusMessage.textContent = "Connection established successfully!";
+          statusMessage.className = "status-message status-success";
+          
+          // Show session info
+          sessionIdText.textContent = data.sessionId;
+          sessionInfo.style.display = 'block';
+          setTimeout(() => sessionInfo.classList.add('fade-in'), 100);
+          
+          currentSessionId = data.sessionId;
+        }
+      } catch (error) {
+        console.log("Status check error:", error);
+      }
+    }
+    
+    // Copy session ID to clipboard
+    function copySessionId() {
+      if (!currentSessionId) return;
+      
+      navigator.clipboard.writeText(currentSessionId).then(() => {
+        const copyBtn = document.querySelector('.copy-btn');
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        }, 2000);
+      });
+    }
+    
+    // Copy pair code to clipboard
+    async function copyPairCode() {
+      const codeElement = document.getElementById("pair-code");
+      if (!codeElement) return;
+      
+      const code = codeElement.textContent;
+      await navigator.clipboard.writeText(code);
+      
+      codeElement.innerHTML = "COPIED ✅";
+      codeElement.style.color = "#4a7cff";
       setTimeout(() => {
-        obj.innerText = text;
-        obj.style.color = "#ff4d7d";
+        codeElement.innerHTML = code;
+        codeElement.style.color = "white";
       }, 1200);
     }
-
+    
     pairForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      submitBtn.disabled = true; // Disable button
-      pairBox.innerHTML = "";
+      submitBtn.disabled = true;
+      pairResult.innerHTML = "";
+      statusMessage.style.display = "none";
+      sessionInfo.style.display = "none";
+      
       let raw = numberInput.value.trim();
       if (!raw) {
-        pairBox.innerHTML = `<p style="color:#ff4d7d;font-weight:bold">❗ Enter your WhatsApp number with country code</p>`;
-        submitBtn.disabled = false; // Re-enable button
+        statusMessage.textContent = "❗ Please enter your WhatsApp number with country code";
+        statusMessage.className = "status-message status-error";
+        statusMessage.style.display = "block";
+        submitBtn.disabled = false;
         return;
       }
-      if (raw.replace(/[^0-9]/g, "").length < 10) { // Adjusted length check
-        pairBox.innerHTML = `<p style="color:#ff4d7d;font-weight:bold">❌ Invalid number format ❌</p>`;
-        submitBtn.disabled = false; // Re-enable button
-        return;
-      }
+      
+      // Clean the number (remove any non-digit characters)
       const num = raw.replace(/[^0-9]/g, "");
+      
+      if (num.length < 10) {
+        statusMessage.textContent = "❌ Invalid number format. Include country code";
+        statusMessage.className = "status-message status-error";
+        statusMessage.style.display = "block";
+        submitBtn.disabled = false;
+        return;
+      }
+      
+      // Format the number for display
       numberInput.type = "text";
       numberInput.value = "+" + num;
-      numberInput.style.color = "#e8f0ff";
-      pairBox.innerHTML = `<p style="color:#a8c0e4;font-weight:bold">Please wait 🔎</p>`;
+      
+      statusMessage.textContent = "Generating pair code...";
+      statusMessage.className = "status-message status-success";
+      statusMessage.style.display = "block";
+      
       try {
-        let { data } = await axios(`/code?number=${num}`);
-        let code = data.code || "Service Unavailable";
-        pairBox.innerHTML = `<div id="copy" onclick="Copy()">CODE: <span style="color:white">${code}</span></div>`;
+        const response = await fetch(`/code?number=${num}`);
+        const data = await response.json();
+        
+        if (data.code) {
+          pairResult.innerHTML = `
+            <p style="color: var(--text-secondary); margin-bottom: 8px;">Enter this code in WhatsApp:</p>
+            <div class="pair-code" id="pair-code" onclick="copyPairCode()">
+              ${data.code}
+            </div>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">
+              <i class="fas fa-info-circle"></i> Click the code to copy it
+            </p>
+          `;
+          
+          // Start checking connection status
+          statusCheckInterval = setInterval(checkConnectionStatus, 3000);
+        } else {
+          throw new Error(data.error || "No code received");
+        }
       } catch (err) {
-        pairBox.innerHTML = `<p style="color:#ff4d7d">⚠️ Error fetching code. Try again.</p>`;
+        statusMessage.textContent = "⚠️ Error generating pair code. Please try again.";
+        statusMessage.className = "status-message status-error";
+        console.error("Error:", err);
       } finally {
-        submitBtn.disabled = false; // Re-enable button in all cases
+        submitBtn.disabled = false;
       }
     });
   </script>

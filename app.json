@@ -1,17 +1,59 @@
 {
-    "name": "Ancore-pair",
-    "description": "Web Session Generator",
-    "logo": "https://files.catbox.moe/dmxoe7.jpeg",
-    "repository": "https://github.com/Corex24/Ancore-pair-code",
-    "keywords": [],
-    "success_url": "/", 
-    "buildpacks": [{ "url": "https://github.com/heroku/heroku-buildpack-nodejs#latest" } ],
-    "env": {      
-      "PORT": {
-        "description": "Port for web app.4000,5000,3000... any!",
-        "value": "5000",
-        "required": false 
-      }
-    }   
-
+  "name": "Ancore WhatsApp Session Manager",
+  "description": "A WhatsApp session generator using QR codes and pairing methods",
+  "logo": "https://files.catbox.moe/dmxoe7.jpeg",
+  "repository": "https://github.com/Corex24/Ancore-pair-code",
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "session",
+    "qr-code",
+    "automation",
+    "bot"
+  ],
+  "website": "https://github.com/Corex24/Ancore-pair-code",
+  "success_url": "/",
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ],
+  "env": {
+    "PORT": {
+      "description": "Port for the web server to listen on",
+      "value": "5000",
+      "required": false
+    },
+    "NODE_ENV": {
+      "description": "Node.js environment mode",
+      "value": "production",
+      "required": false
+    },
+    "MEGA_EMAIL": {
+      "description": "MEGA.nz account email for session storage",
+      "value": "darkwebagent096@gmail.com",
+      "required": true
+    },
+    "MEGA_PASSWORD": {
+      "description": "MEGA.nz account password for session storage",
+      "value": "Darknetofficialgh@@2144",
+      "required": true
+    },
+    "SESSION_TIMEOUT": {
+      "description": "Session timeout in milliseconds (default: 180000 = 3 minutes)",
+      "value": "180000",
+      "required": false
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "free"
+    }
+  },
+  "addons": [
+    {
+      "plan": "papertrail:choklad"
+    }
+  ]
 }

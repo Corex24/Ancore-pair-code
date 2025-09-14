@@ -8,12 +8,13 @@ const {
   default: makeWASocket,
   Browsers,
   delay,
-  useMultiFileAuthState,
-  jidNormalizedUser,
-  fetchLatestBaileysVersion
+  useMultiFileAuthState
 } = require('@whiskeysockets/baileys');
 
 const router = express.Router();
+
+// Store active sessions
+const activeSessions = new Map();
 
 function removeFile(filePath) {
   try {
@@ -26,18 +27,60 @@ function removeFile(filePath) {
   }
 }
 
+// Status endpoint
+router.get('/status', (req, res) => {
+  const sessionId = req.query.sessionId;
+  
+  if (!sessionId) {
+    return res.status(400).json({ 
+      connected: false, 
+      error: 'Session ID is required' 
+    });
+  }
+  
+  const sessionData = activeSessions.get(sessionId);
+  
+  if (sessionData && sessionData.connected) {
+    res.json({
+      connected: true,
+      sessionId: sessionData.sessionId,
+      userJid: sessionData.userJid,
+      timestamp: sessionData.timestamp
+    });
+  } else {
+    res.json({
+      connected: false,
+      message: 'Session not found or not connected yet'
+    });
+  }
+});
+
 router.get('/', async (req, res) => {
   const id = makeid();
-  const num = req.query.number;
+  
+  // Set proper headers for QR code image
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  // Store initial session data
+  activeSessions.set(id, {
+    connected: false,
+    sessionId: null,
+    userJid: null,
+    timestamp: Date.now()
+  });
 
   async function ANCORE_MAIN() {
     const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
+    
     try {
       let sock = makeWASocket({
         auth: state,
         printQRInTerminal: false,
         logger: pino({ level: "silent" }),
-        browser: Browsers.macOS("Desktop")
+        browser: Browsers.chrome("Windows")
       });
 
       sock.ev.on('creds.update', saveCreds);
@@ -45,20 +88,39 @@ router.get('/', async (req, res) => {
       sock.ev.on("connection.update", async (s) => {
         const { connection, lastDisconnect, qr } = s;
 
-        if (qr) {
-          const qrBuffer = await QRCode.toBuffer(qr);
-          res.end(qrBuffer);
+        if (qr && !res.headersSent) {
+          try {
+            const qrBuffer = await QRCode.toBuffer(qr, {
+              errorCorrectionLevel: 'H',
+              margin: 2,
+              width: 300
+            });
+            res.end(qrBuffer);
+          } catch (qrError) {
+            console.error("QR generation error:", qrError);
+            if (!res.headersSent) {
+              res.status(500).send("QR generation failed");
+            }
+          }
         }
 
         if (connection === "open") {
           try {
-            await delay(5000);
+            await delay(3000);
             let rf = __dirname + `/temp/${id}/creds.json`;
 
             const mega_url = await upload(fs.createReadStream(rf), `${sock.user.id}.json`);
             let md = "Ancore_" + mega_url.replace('https://mega.nz/file/', '');
 
-            // Send session ID
+            // Update session data
+            activeSessions.set(id, {
+              connected: true,
+              sessionId: md,
+              userJid: sock.user.id,
+              timestamp: Date.now()
+            });
+
+            // Send session ID to user
             await sock.sendMessage(sock.user.id, { text: md });
 
             // Send welcome message
@@ -66,7 +128,7 @@ router.get('/', async (req, res) => {
 
 ——————————————————
 *Your Session Id has been successfully created*
-*Keep Session Id Safe!* Don’t share it with anyone!
+*Keep Session Id Safe!* Don't share it with anyone!
 ——————————————————
 > *STAY UPDATED ⚡:*
 Telegram Group: https://t.me/+UfO-wlwfOaM3NmE0
@@ -83,37 +145,60 @@ http://wa.me/2348036869669 OR http://t.me/corex2410
 
             await sock.sendMessage(sock.user.id, { text: desc });
           } catch (error) {
-            console.error("Error sending session file:", error);
+            console.error("Error in session creation:", error);
           }
 
-          await delay(10);
-          await sock.ws.close();
-          await removeFile('./temp/' + id);
+          // Cleanup
+          try {
+            await sock.ws.close();
+          } catch (closeError) {
+            console.error("Error closing connection:", closeError);
+          }
+          removeFile('./temp/' + id);
           console.log(`${sock.user.id} CONNECTED ✅ CLEANED UP`);
         } else if (
           connection === "close" &&
           lastDisconnect?.error?.output?.statusCode !== 401
         ) {
-          await delay(10);
-          ANCORE_MAIN();
+          await delay(10000);
+          ANCORE_MAIN().catch(console.error);
         }
       });
     } catch (err) {
-      console.log("Service restarted");
-      await removeFile('./temp/' + id);
+      console.log("Service error:", err);
+      removeFile('./temp/' + id);
+      activeSessions.delete(id);
       if (!res.headersSent) {
-        res.send({ code: "❗ Service Unavailable" });
+        res.status(500).send("Service unavailable");
       }
     }
   }
 
-  await ANCORE_MAIN();
+  // Add timeout for QR generation
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(408).send("QR generation timeout");
+    }
+    activeSessions.delete(id);
+  }, 30000);
+
+  try {
+    await ANCORE_MAIN();
+  } finally {
+    clearTimeout(timeout);
+  }
 });
 
-// Optional: restart the process every 3 minutes
+// Clean up old sessions periodically
 setInterval(() => {
-  console.log("RESTARTING PROCESS ...");
-  process.exit();
-}, 180000);
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+  
+  for (const [sessionId, sessionData] of activeSessions.entries()) {
+    if (now - sessionData.timestamp > oneHour) {
+      activeSessions.delete(sessionId);
+    }
+  }
+}, 30 * 60 * 1000); // Clean every 30 minutes
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const { 
+const {
   default: makeWASocket,
   useMultiFileAuthState,
   delay,
@@ -9,26 +9,110 @@ const { upload } = require('./mega');
 const { makeid } = require('./gen-id');
 const express = require('express');
 const fs = require('fs');
-let router = express.Router();
+const router = express.Router();
 const pino = require("pino");
 
+// Store active sessions for status checking
+const activeSessions = new Map();
+
+// Remove temporary files
 function removeFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) return false;
     fs.rmSync(filePath, { recursive: true, force: true });
     return true;
   } catch (e) {
-    console.error('Error deleting file:', e); 
+    console.error('Error deleting file:', e);
     return false;
   }
 }
+
+// Function to validate and format international phone numbers
+function validateAndFormatPhoneNumber(number) {
+  // Remove all non-digit characters
+  const cleaned = number.replace(/[^0-9]/g, '');
+  
+  // Check if the number is empty
+  if (!cleaned) {
+    return { valid: false, error: 'Phone number is required' };
+  }
+  
+  // Check if the number already has a country code (starts with digits 1-9)
+  if (cleaned.match(/^[1-9]/)) {
+    // Number already has country code, validate length
+    if (cleaned.length < 8 || cleaned.length > 15) {
+      return { 
+        valid: false, 
+        error: 'Invalid phone number length. Should be between 8-15 digits including country code' 
+      };
+    }
+    return { valid: true, formatted: cleaned };
+  }
+  
+  // If we reach here, the number might be missing country code
+  return { 
+    valid: false, 
+    error: 'Phone number must include country code (e.g., 1 for US, 44 for UK, 91 for India)' 
+  };
+}
+
+// Status endpoint for frontend to check connection status
+router.get('/status', (req, res) => {
+  const sessionId = req.query.sessionId;
+  
+  if (!sessionId) {
+    return res.status(400).json({ 
+      connected: false, 
+      error: 'Session ID is required' 
+    });
+  }
+  
+  const sessionData = activeSessions.get(sessionId);
+  
+  if (sessionData && sessionData.connected) {
+    res.json({
+      connected: true,
+      sessionId: sessionData.finalSessionId,
+      userJid: sessionData.userJid,
+      timestamp: sessionData.timestamp
+    });
+  } else {
+    res.json({
+      connected: false,
+      message: 'Session not found or not connected yet'
+    });
+  }
+});
 
 router.get('/', async (req, res) => {
   const id = makeid();
   let num = req.query.number;
 
+  // Validate phone number
+  if (!num) {
+    return res.status(400).json({ error: 'Phone number is required' });
+  }
+
+  // Validate and format phone number
+  const validationResult = validateAndFormatPhoneNumber(num);
+  if (!validationResult.valid) {
+    return res.status(400).json({ error: validationResult.error });
+  }
+  
+  const formattedNumber = validationResult.formatted;
+
+  // Store initial session data for status tracking
+  activeSessions.set(id, {
+    connected: false,
+    finalSessionId: null,
+    userJid: null,
+    timestamp: Date.now(),
+    phoneNumber: formattedNumber // Store for debugging
+  });
+
   async function ANCORE_PAIR() {
     const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
+    
     try {
       const sock = makeWASocket({
         auth: {
@@ -42,42 +126,74 @@ router.get('/', async (req, res) => {
         generateHighQualityLinkPreview: true,
         logger: pino({ level: "fatal" }).child({ level: "fatal" }),
         syncFullHistory: false,
-        browser: Browsers.macOS("Safari")
+        browser: Browsers.chrome("Windows")
       });
 
-      // Request pairing code
+      // Request pairing code if not registered
       if (!sock.authState.creds.registered) {
         await delay(1500);
-        num = num.replace(/[^0-9]/g, '');
-        const code = await sock.requestPairingCode(num);
-        if (!res.headersSent) {
-          return res.send({ code });
+        
+        try {
+          const code = await sock.requestPairingCode(formattedNumber);
+          if (!res.headersSent) {
+            return res.json({ 
+              success: true,
+              code,
+              message: 'Pairing code generated successfully',
+              sessionId: id, // This is the temporary session ID for status tracking
+              instructions: 'Enter this code in WhatsApp > Linked Devices > Link a Device'
+            });
+          }
+        } catch (error) {
+          console.error('Error requesting pairing code:', error);
+          activeSessions.delete(id);
+          if (!res.headersSent) {
+            return res.status(500).json({ 
+              error: 'Failed to generate pairing code',
+              details: error.message,
+              note: 'Make sure your phone number includes the correct country code'
+            });
+          }
         }
       }
 
+      // Handle credentials updates
       sock.ev.on('creds.update', saveCreds);
 
-      sock.ev.on("connection.update", async (s) => {
-        const { connection, lastDisconnect } = s;
+      // Handle connection updates
+      sock.ev.on("connection.update", async (update) => {
+        const { connection, lastDisconnect } = update;
 
         if (connection === "open") {
-          await delay(5000);
+          console.log(`Connected successfully to ${sock.user.id}`);
+          
+          await delay(3000); // Wait for connection to stabilize
           const rf = __dirname + `/temp/${id}/creds.json`;
 
           try {
+            // Upload session to MEGA
             const mega_url = await upload(fs.createReadStream(rf), `${sock.user.id}.json`);
             const string_session = mega_url.replace('https://mega.nz/file/', '');
             let ancore = "Ancore_" + string_session;
 
-            // Send session ID
+            // Update session data with final session ID
+            activeSessions.set(id, {
+              connected: true,
+              finalSessionId: ancore,
+              userJid: sock.user.id,
+              timestamp: Date.now(),
+              phoneNumber: formattedNumber
+            });
+
+            // Send session ID to user
             await sock.sendMessage(sock.user.id, { text: ancore });
 
             // Send welcome message
-            const scd = `> *⚡ Welcome to Ancore💙!*
+            const welcomeMessage = `> *⚡ Welcome to Ancore💙!*
 
 ——————————————————
 *Your Session Id has been successfully created*
-*Keep Session Id Safe!* Don’t share Session Id with anyone!
+*Keep Session Id Safe!* Don't share Session Id with anyone!
 ——————————————————
                            
 > *STAY UPDATED ⚡:*
@@ -100,26 +216,63 @@ http://t.me/corex2410
 
 (c) Created by Corex with 💙`;
 
-            await sock.sendMessage(sock.user.id, { text: scd });
-          } catch (e) {
-            console.error("Error sending session file:", e);
+            await sock.sendMessage(sock.user.id, { text: welcomeMessage });
+            
+            // Send response to client if not already sent
+            if (!res.headersSent) {
+              res.json({
+                success: true,
+                message: 'Session created successfully',
+                sessionId: ancore,
+                userJid: sock.user.id,
+                note: 'Session ID has been sent to your WhatsApp'
+              });
+            }
+
+          } catch (uploadError) {
+            console.error("Error uploading session file:", uploadError);
+            activeSessions.delete(id);
+            if (!res.headersSent) {
+              res.status(500).json({ 
+                error: 'Failed to upload session',
+                details: uploadError.message 
+              });
+            }
           }
 
-          await delay(10);
-          await sock.ws.close();
+          // Cleanup
+          await delay(100);
+          try {
+            await sock.ws.close();
+          } catch (closeError) {
+            console.error('Error closing connection:', closeError);
+          }
           removeFile('./temp/' + id);
           console.log(`${sock.user.id} CONNECTED ✅ CLEANED UP`);
         } 
-        else if (connection === "close" && lastDisconnect?.error?.output?.statusCode !== 401) {
-          await delay(10);
-          ANCORE_PAIR();
+        else if (connection === "close") {
+          const statusCode = lastDisconnect?.error?.output?.statusCode;
+          if (statusCode !== 401) { // Don't reconnect on authentication error
+            console.log('Connection closed, attempting to reconnect...');
+            await delay(5000); // Wait 5 seconds before reconnecting
+            ANCORE_PAIR().catch(console.error);
+          } else {
+            console.log('Authentication failed, not reconnecting');
+            removeFile('./temp/' + id);
+            activeSessions.delete(id);
+          }
         }
       });
+
     } catch (err) {
-      console.log("Service restarted");
+      console.error("Error in ANCORE_PAIR:", err);
       removeFile('./temp/' + id);
+      activeSessions.delete(id);
       if (!res.headersSent) {
-        res.send({ code: "❗ Service Unavailable" });
+        res.status(500).json({ 
+          error: 'Service unavailable', 
+          details: err.message 
+        });
       }
     }
   }
@@ -127,10 +280,26 @@ http://t.me/corex2410
   await ANCORE_PAIR();
 });
 
-// Optional process restart (only if using PM2/Render auto-restart)
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    service: 'WhatsApp Pairing Service',
+    timestamp: new Date().toISOString(),
+    activeSessions: activeSessions.size
+  });
+});
+
+// Clean up old sessions periodically (older than 1 hour)
 setInterval(() => {
-  console.log("RESTARTING PROCESS ...");
-  process.exit();
-}, 180000);
+  const now = Date.now();
+  const oneHour = 60 * 60 * 1000;
+  
+  for (const [sessionId, sessionData] of activeSessions.entries()) {
+    if (now - sessionData.timestamp > oneHour) {
+      activeSessions.delete(sessionId);
+    }
+  }
+}, 30 * 60 * 1000); // Clean every 30 minutes
 
 module.exports = router;

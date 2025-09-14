@@ -9,119 +9,478 @@
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body {
+    :root {
+      --primary-gradient: linear-gradient(135deg, #4a7cff, #00c6ff);
+      --success-gradient: linear-gradient(135deg, #4caf50, #8bc34a);
+      --background-gradient: radial-gradient(800px 400px at 10% -10%, #0f1a30 0%, #0a0e1a 50%, #070b14 100%),
+                            linear-gradient(120deg, #080c18 0%, #0a0e1a 50%, #0f1525 100%);
+      --card-bg: rgba(15, 25, 45, 0.9);
+      --text-primary: #e8f0ff;
+      --text-secondary: #a8c0e4;
+      --error-color: #ff4d7d;
+      --success-color: #4caf50;
+    }
+    
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
       font-family: 'Segoe UI', system-ui, sans-serif;
-      background: radial-gradient(800px 400px at 10% -10%, #0f1a30 0%, #0a0e1a 50%, #070b14 100%),
-        linear-gradient(120deg, #080c18 0%, #0a0e1a 50%, #0f1525 100%);
+      background: var(--background-gradient);
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      color: #e8f0ff;
+      min-height: 100vh;
+      color: var(--text-primary);
+      padding: 20px;
     }
+    
     .main {
-      background: rgba(15, 25, 45, 0.9);
+      background: var(--card-bg);
       border: 1px solid rgba(100, 160, 255, 0.2);
       border-radius: 16px;
-      padding: 28px 20px;
-      width: 340px;
+      padding: 32px 24px;
+      width: 100%;
+      max-width: 420px;
       text-align: center;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(10px);
+      transition: all 0.5s ease;
     }
+    
+    .connection-steps {
+      background: rgba(20, 35, 60, 0.6);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 0 0 20px;
+      text-align: left;
+      border-left: 4px solid #4a7cff;
+    }
+    
+    .connection-steps h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: #a8c0e4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .connection-steps ol {
+      padding-left: 20px;
+      margin: 0;
+    }
+    
+    .connection-steps li {
+      margin-bottom: 8px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+    
+    .connection-steps li:last-child {
+      margin-bottom: 0;
+    }
+    
+    #qr-container {
+      position: relative;
+      margin: 0 auto 20px;
+      width: 260px;
+      height: 260px;
+    }
+    
     #qr-image {
       width: 100%;
-      max-width: 260px;
+      height: 100%;
       border-radius: 12px;
-      margin-bottom: 16px;
-      box-shadow: 0 0 12px rgba(74,124,255,0.4);
-      transition: opacity 0.5s ease-in-out;
+      box-shadow: 0 0 20px rgba(74, 124, 255, 0.5);
+      transition: all 0.5s ease;
     }
+    
+    .qr-loading {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      color: var(--text-secondary);
+    }
+    
+    .qr-loading i {
+      font-size: 48px;
+      animation: spin 1.5s linear infinite;
+    }
+    
     h2 {
-      font-size: 22px;
-      margin: 0 0 8px;
-      background: linear-gradient(90deg, #4a7cff, #00c6ff);
+      font-size: 24px;
+      margin: 0 0 12px;
+      background: var(--primary-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
+    
     p.legend {
-      margin: 0 0 12px;
-      font-size: 14px;
-      color: #a8c0e4;
+      margin: 0 0 16px;
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.5;
     }
+    
     progress {
       width: 100%;
-      height: 8px;
+      height: 10px;
       border-radius: 10px;
       overflow: hidden;
-      margin: 8px 0 16px;
+      margin: 12px 0 20px;
+      border: none;
     }
+    
     progress::-webkit-progress-bar {
       background-color: rgba(255, 255, 255, 0.1);
-    }
-    progress::-webkit-progress-value {
-      background: linear-gradient(90deg, #4a7cff, #00c6ff);
-    }
-    .reload-button {
-      display: inline-block;
-      padding: 10px 18px;
       border-radius: 10px;
-      background: linear-gradient(135deg, #4a7cff, #00c6ff);
+    }
+    
+    progress::-webkit-progress-value {
+      background: var(--primary-gradient);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+    
+    .reload-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      background: var(--primary-gradient);
       color: white;
       font-weight: 600;
       text-decoration: none;
-      transition: transform .2s;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      margin: 8px 0;
     }
-    .reload-button:hover { transform: translateY(-2px); }
+    
+    .reload-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(74, 124, 255, 0.4);
+    }
+    
     .expired {
-      color: #ff4d7d;
+      color: var(--error-color);
       font-weight: bold;
-      margin-top: 12px;
+      margin: 16px 0;
+      font-size: 16px;
     }
+    
     .glowing-text {
-      margin-top: 16px;
-      font-size: 13px;
-      color: #a8c0e4;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary);
       animation: glowing 2s infinite;
     }
+    
+    .status-message {
+      margin: 12px 0;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .status-success {
+      background: rgba(76, 175, 80, 0.15);
+      color: var(--success-color);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      display: block;
+    }
+    
+    .status-error {
+      background: rgba(244, 67, 54, 0.15);
+      color: var(--error-color);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+      display: block;
+    }
+    
+    .session-info {
+      background: rgba(20, 35, 60, 0.6);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 20px 0;
+      text-align: left;
+      border-left: 4px solid var(--success-color);
+      display: none;
+    }
+    
+    .session-info h3 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      color: var(--success-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .session-id {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      border-radius: 8px;
+      font-family: monospace;
+      word-break: break-all;
+      font-size: 14px;
+      color: var(--text-primary);
+      margin: 12px 0;
+      position: relative;
+    }
+    
+    .copy-btn {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .instructions {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
     @keyframes glowing {
-      0%,100%{ text-shadow: 0 0 6px #4a7cff; }
-      50%{ text-shadow: 0 0 18px #00c6ff; }
+      0%, 100% { text-shadow: 0 0 6px #4a7cff; }
+      50% { text-shadow: 0 0 18px #00c6ff; }
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    @media (max-width: 480px) {
+      .main {
+        padding: 24px 16px;
+      }
+      
+      #qr-container {
+        width: 220px;
+        height: 220px;
+      }
+      
+      h2 {
+        font-size: 22px;
+      }
+      
+      .connection-steps {
+        padding: 12px;
+      }
     }
   </style>
 </head>
 <body>
   <div class="main">
-    <div id="QR-content">
-      <img id="qr-image" src="/server" alt="WhatsApp Login QR Code">
+    <div class="connection-steps">
+      <h3><i class="fas fa-info-circle"></i> Connection Steps</h3>
+      <ol>
+        <li>Open WhatsApp on your phone</li>
+        <li>Tap <strong>Settings</strong> → <strong>Linked Devices</strong></li>
+        <li>Tap <strong>Link a Device</strong></li>
+        <li>Scan the QR code below</li>
+      </ol>
     </div>
-    <h2 id="main">ANCORE QR CODE</h2>
-    <p class="legend" id="legend">Scan the QR code within 30s!</p>
+    
+    <div id="qr-container">
+      <div class="qr-loading" id="qr-loading">
+        <i class="fas fa-spinner"></i>
+      </div>
+      <img id="qr-image" src="/server" alt="WhatsApp Login QR Code" onload="hideLoader()" onerror="handleImageError()">
+    </div>
+    
+    <h2 id="main-title">ANCORE QR CODE</h2>
+    <p class="legend" id="legend">Scan the QR code using WhatsApp > Linked Devices</p>
+    
+    <div class="status-message" id="status-message"></div>
+    
     <progress value="0" max="30" id="progressBar"></progress>
-    <a href="/qr" class="reload-button">Reload Page</a>
+    
+    <button class="reload-button" onclick="window.location.reload()">
+      <i class="fas fa-sync-alt"></i> Generate New QR Code
+    </button>
+    
+    <div class="session-info" id="session-info">
+      <h3><i class="fas fa-check-circle"></i> Successfully Connected!</h3>
+      <p>Your session has been created successfully. Your session ID is:</p>
+      <div class="session-id" id="session-id">
+        <span id="session-id-text">Loading session ID...</span>
+        <button class="copy-btn" onclick="copySessionId()">
+          <i class="fas fa-copy"></i> Copy
+        </button>
+      </div>
+      <p class="instructions">
+        <i class="fas fa-exclamation-triangle"></i> Keep this session ID safe and secure. 
+        You'll need it to restore your session. This ID has also been sent to your WhatsApp.
+      </p>
+    </div>
+    
     <div class="glowing-text">(c) Created by Corex with 💙</div>
   </div>
 
   <script>
-    let timeleft = 30;
+    // Configuration
+    const QR_TIMEOUT = 30; // seconds
+    const CHECK_INTERVAL = 3000; // Check connection status every 3 seconds
+    let timeleft = QR_TIMEOUT;
+    let refreshTimer;
+    let statusCheckInterval;
+    
     const progressBar = document.getElementById("progressBar");
-    const mainText = document.getElementById("main");
+    const mainTitle = document.getElementById("main-title");
     const legend = document.getElementById("legend");
     const qrImage = document.getElementById("qr-image");
-
-    let downloadTimer = setInterval(() => {
+    const qrLoading = document.getElementById("qr-loading");
+    const statusMessage = document.getElementById("status-message");
+    const sessionInfo = document.getElementById("session-info");
+    const sessionIdText = document.getElementById("session-id-text");
+    
+    // Generate a session ID for tracking
+    function generateSessionId() {
+      let sessionId = localStorage.getItem('ancore_session_id');
+      if (!sessionId) {
+        sessionId = 'session_' + Math.random().toString(36).substring(2, 15);
+        localStorage.setItem('ancore_session_id', sessionId);
+      }
+      return sessionId;
+    }
+    
+    // Hide loading spinner when image loads
+    function hideLoader() {
+      qrLoading.style.display = 'none';
+      qrImage.style.opacity = '1';
+    }
+    
+    // Handle image loading errors
+    function handleImageError() {
+      qrLoading.style.display = 'none';
+      statusMessage.textContent = "Failed to load QR code. Please try again.";
+      statusMessage.className = "status-message status-error";
+    }
+    
+    // Check connection status
+    async function checkConnectionStatus() {
+      try {
+        const sessionId = generateSessionId();
+        const response = await fetch(`/server/status?sessionId=${sessionId}`);
+        const data = await response.json();
+        
+        if (data.connected && data.sessionId) {
+          // Connection successful!
+          clearInterval(downloadTimer);
+          clearTimeout(refreshTimer);
+          clearInterval(statusCheckInterval);
+          
+          progressBar.style.display = 'none';
+          mainTitle.textContent = "Connected Successfully!";
+          mainTitle.style.backgroundImage = "var(--success-gradient)";
+          legend.innerHTML = `<span style="color: var(--success-color);">Your WhatsApp is now connected</span>`;
+          qrImage.style.opacity = '0.7';
+          qrImage.style.boxShadow = '0 0 20px rgba(76, 175, 80, 0.5)';
+          
+          // Show session info
+          sessionIdText.textContent = data.sessionId;
+          sessionInfo.style.display = 'block';
+          setTimeout(() => sessionInfo.classList.add('fade-in'), 100);
+          
+          statusMessage.textContent = "Connection established successfully!";
+          statusMessage.className = "status-message status-success";
+        }
+      } catch (error) {
+        console.log("Status check error:", error);
+      }
+    }
+    
+    // Update progress bar and handle expiration
+    function updateProgress() {
       if (timeleft <= 0) {
         clearInterval(downloadTimer);
-        progressBar.remove();
-        mainText.textContent = "QR Expired!";
-        legend.innerHTML = `<span class="expired">Please reload the page</span>`;
-        qrImage.style.opacity = '0';
+        clearTimeout(refreshTimer);
+        progressBar.style.display = 'none';
+        mainTitle.textContent = "QR Expired!";
+        legend.innerHTML = `<span class="expired">Please generate a new QR code</span>`;
+        qrImage.style.opacity = '0.3';
+        statusMessage.textContent = "This QR code has expired for security reasons.";
+        statusMessage.className = "status-message status-error";
       } else {
-        progressBar.value = 30 - timeleft;
+        progressBar.value = QR_TIMEOUT - timeleft;
         timeleft -= 1;
       }
-    }, 1000);
+    }
+    
+    // Refresh QR code before it expires
+    function refreshQRCode() {
+      qrImage.style.opacity = '0.5';
+      qrLoading.style.display = 'flex';
+      qrImage.src = '/server?t=' + new Date().getTime(); // Cache busting
+      statusMessage.textContent = "Generating new QR code...";
+      statusMessage.className = "status-message status-success";
+    }
+    
+    // Copy session ID to clipboard
+    function copySessionId() {
+      const sessionId = sessionIdText.textContent;
+      navigator.clipboard.writeText(sessionId).then(() => {
+        const copyBtn = document.querySelector('.copy-btn');
+        copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+          copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+        }, 2000);
+      });
+    }
+    
+    // Start timers
+    const downloadTimer = setInterval(updateProgress, 1000);
+    refreshTimer = setTimeout(refreshQRCode, QR_TIMEOUT * 1000 - 5000); // Refresh 5s before expiration
+    statusCheckInterval = setInterval(checkConnectionStatus, CHECK_INTERVAL);
+    
+    // Check if page is visible to prevent unnecessary refreshes
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        clearInterval(downloadTimer);
+        clearTimeout(refreshTimer);
+        clearInterval(statusCheckInterval);
+      } else {
+        timeleft = QR_TIMEOUT;
+        downloadTimer = setInterval(updateProgress, 1000);
+        refreshTimer = setTimeout(refreshQRCode, QR_TIMEOUT * 1000 - 5000);
+        statusCheckInterval = setInterval(checkConnectionStatus, CHECK_INTERVAL);
+      }
+    });
+    
+    // Initial status check
+    checkConnectionStatus();
   </script>
 </body>
 </html>

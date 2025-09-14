@@ -7,6 +7,7 @@
   <meta name="description"
     content="Ancore - Multi-Device WhatsApp Bot. Fast, secure, and feature-rich automation for WhatsApp.">
   <meta name="theme-color" content="#0a0e1a">
+  <link rel="icon" href="https://files.catbox.moe/pddl2k.jpeg" type="image/jpeg">
   <title>Ancore - Multi-Device WhatsApp Bot</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -205,10 +206,12 @@
       display: flex;
       gap: 10px;
       align-items: center;
+      transition: all 0.3s ease;
     }
 
     .nav-link:hover {
       background: var(--glass);
+      transform: translateX(5px);
     }
 
     /* Hero */
@@ -250,6 +253,8 @@
       border: 1px solid var(--glass-border);
       font-size: 12px;
       margin-bottom: 14px;
+      display: inline-block;
+      animation: floaty 3s ease-in-out infinite;
     }
 
     .title {
@@ -263,6 +268,8 @@
       max-width: 720px;
       margin: 0 auto 26px;
       color: var(--muted);
+      font-size: 18px;
+      line-height: 1.6;
     }
 
     .cta-wrap {
@@ -273,7 +280,7 @@
     }
 
     .btn {
-      padding: 12px 18px;
+      padding: 14px 24px;
       border-radius: 14px;
       border: 1px solid var(--glass-border);
       background: linear-gradient(135deg, rgba(74, 124, 255, 0.25), rgba(0, 198, 255, 0.15));
@@ -283,11 +290,12 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      transition: .2s;
+      transition: all 0.3s ease;
     }
 
     .btn:hover {
       transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(74, 124, 255, 0.3);
     }
 
     .btn-primary {
@@ -306,6 +314,8 @@
 
     .stat {
       text-align: center;
+      animation: slideUp 0.8s ease both;
+      animation-delay: calc(var(--delay) * 0.1s);
     }
 
     .stat-number {
@@ -314,10 +324,12 @@
       background: linear-gradient(90deg, var(--accent), var(--accent2));
       -webkit-background-clip: text;
       color: transparent;
+      display: block;
     }
 
     .stat-label {
       color: var(--muted);
+      font-size: 14px;
     }
 
     /* Features */
@@ -346,11 +358,12 @@
       border: 1px solid var(--glass-border);
       border-radius: 18px;
       padding: 20px;
-      transition: .2s;
+      transition: all 0.3s ease;
     }
 
     .card:hover {
       transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
 
     @media(min-width:720px) {
@@ -399,6 +412,7 @@
       border-radius: 12px;
       margin-bottom: 16px;
       overflow: hidden;
+      transition: all 0.3s ease;
     }
 
     .faq-question {
@@ -419,7 +433,7 @@
       padding: 0 20px;
       max-height: 0;
       overflow: hidden;
-      transition: .3s;
+      transition: all 0.3s ease;
     }
 
     .faq-item.active .faq-answer {
@@ -451,13 +465,18 @@
       cursor: pointer;
       opacity: 0;
       visibility: hidden;
-      transition: .3s;
+      transition: all 0.3s ease;
       z-index: 999;
     }
 
     .scroll-top.visible {
       opacity: 1;
       visibility: visible;
+    }
+
+    .scroll-top:hover {
+      background: var(--accent);
+      transform: translateY(-3px);
     }
 
     /* Music */
@@ -472,6 +491,7 @@
       border-radius: 50px;
       background: var(--glass);
       border: 1px solid var(--glass-border);
+      z-index: 997;
     }
 
     .music-toggle {
@@ -482,15 +502,35 @@
       border: none;
       color: #fff;
       cursor: pointer;
+      transition: all 0.3s ease;
     }
 
     .music-toggle:hover {
       background: var(--accent2);
+      transform: scale(1.1);
     }
 
     .music-info {
       font-size: 14px;
       color: var(--muted);
+    }
+
+    /* Loading states */
+    .btn-loading {
+      position: relative;
+      pointer-events: none;
+    }
+
+    .btn-loading::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spinSlow 1s linear infinite;
+      right: 12px;
     }
   </style>
 </head>
@@ -514,14 +554,14 @@
     <a class="nav-link" href="https://wa.me/2348036869669"><i class="fab fa-whatsapp"></i> WhatsApp</a>
     <a class="nav-link" href="https://t.me/corex2410"><i class="fab fa-telegram"></i> Telegram</a>
     <a class="nav-link" href="https://github.com/Corex24"><i class="fab fa-github"></i> GitHub</a>
-     <a class="nav-link" href= "#" onclick="alert('🚧 This feature is coming soon! 🚧'); return false;"><i class="fas fa-envelope"></i> Support</a>
+    <a class="nav-link" href= "#" onclick="alert('🚧 This feature is coming soon! 🚧'); return false;"><i class="fas fa-envelope"></i> Support</a>
   </aside>
   <div class="overlay" id="overlay"></div>
 
   <!-- Music Player -->
   <div class="music-player">
     <button class="music-toggle" id="musicToggle"><i class="fas fa-play" id="musicIcon"></i></button>
-    <div class="music-info" id="musicInfo">Background Music: Off</div>
+    <div class="music-info" id="musicInfo">Click to enable background music</div>
   </div>
 
   <!-- Hero -->
@@ -546,19 +586,19 @@
   <section class="section">
     <div class="container">
       <div class="stats">
-        <div class="stat">
+        <div class="stat" style="--delay: 1">
           <div class="stat-number" id="user-count">1K+</div>
           <div class="stat-label">Active Users</div>
         </div>
-        <div class="stat">
+        <div class="stat" style="--delay: 2">
           <div class="stat-number" id="group-count">5K+</div>
           <div class="stat-label">Connection Count</div>
         </div>
-        <div class="stat">
+        <div class="stat" style="--delay: 3">
           <div class="stat-number">24/7</div>
           <div class="stat-label">Uptime</div>
         </div>
-        <div class="stat">
+        <div class="stat" style="--delay: 4">
           <div class="stat-number">200+</div>
           <div class="stat-label">Commands</div>
         </div>
@@ -652,14 +692,13 @@
         <a class="btn" href="https://wa.me/2348036869669"><i class="fab fa-whatsapp"></i> WhatsApp Support</a>
         <a class="btn" href="https://t.me/corex2410"><i class="fab fa-telegram"></i> Telegram</a>
         <a class="btn" href="https://github.com/Corex24/Ancore"><i class="fab fa-github"></i> GitHub</a>
-       
       </div>
     </div>
   </section>
 
   <!-- Footer -->
   <footer class="footer">
-    <p>Created by Corex with <i class="fas fa-heart" style="color: blue"></i> · © <span id="year"></span> Ancore Bot</p>
+    <p>Created by Corex with <i class="fas fa-heart" style="color: var(--accent)"></i> · © <span id="year"></span> Ancore Bot</p>
   </footer>
 
   <!-- Scroll top -->
@@ -672,14 +711,33 @@
 
   <script>
     // Drawer toggle
-    const hamburger = document.getElementById('hamburger'); const drawer = document.getElementById('drawer'); const overlay = document.getElementById('overlay');
-    hamburger.addEventListener('click', () => { drawer.classList.toggle('open'); overlay.classList.toggle('show'); });
-    overlay.addEventListener('click', () => { drawer.classList.remove('open'); overlay.classList.remove('show'); });
+    const hamburger = document.getElementById('hamburger'); 
+    const drawer = document.getElementById('drawer'); 
+    const overlay = document.getElementById('overlay');
+    
+    hamburger.addEventListener('click', () => { 
+      drawer.classList.toggle('open'); 
+      overlay.classList.toggle('show'); 
+    });
+    
+    overlay.addEventListener('click', () => { 
+      drawer.classList.remove('open'); 
+      overlay.classList.remove('show'); 
+    });
+
+    // Close drawer when clicking on links
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', () => {
+        drawer.classList.remove('open');
+        overlay.classList.remove('show');
+      });
+    });
 
     // FAQ
     document.querySelectorAll('.faq-question').forEach(btn => {
       btn.addEventListener('click', () => {
-        const item = btn.parentElement; const active = item.classList.contains('active');
+        const item = btn.parentElement; 
+        const active = item.classList.contains('active');
         document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('active'));
         if (!active) item.classList.add('active');
       });
@@ -687,21 +745,83 @@
 
     // Scroll top
     const scrollBtn = document.getElementById('scrollTop');
-    window.addEventListener('scroll', () => { window.scrollY > 300 ? scrollBtn.classList.add('visible') : scrollBtn.classList.remove('visible'); });
+    window.addEventListener('scroll', () => { 
+      window.scrollY > 300 ? scrollBtn.classList.add('visible') : scrollBtn.classList.remove('visible'); 
+    });
+    
     scrollBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 
     // Music
-    const musicToggle = document.getElementById('musicToggle'); const musicIcon = document.getElementById('musicIcon'); const musicInfo = document.getElementById('musicInfo'); const backgroundMusic = document.getElementById('backgroundMusic');
+    const musicToggle = document.getElementById('musicToggle'); 
+    const musicIcon = document.getElementById('musicIcon'); 
+    const musicInfo = document.getElementById('musicInfo'); 
+    const backgroundMusic = document.getElementById('backgroundMusic');
+    
     let playing = false;
     musicToggle.addEventListener('click', () => {
-      if (playing) { backgroundMusic.pause(); musicIcon.classList.replace('fa-pause', 'fa-play'); musicInfo.textContent = 'Background Music: Off'; }
-      else { backgroundMusic.play().then(() => { musicIcon.classList.replace('fa-play', 'fa-pause'); musicInfo.textContent = 'Playing: Ancore by Corex'; }).catch(() => musicInfo.textContent = 'Click to enable music'); }
+      if (playing) { 
+        backgroundMusic.pause(); 
+        musicIcon.classList.replace('fa-pause', 'fa-play'); 
+        musicInfo.textContent = 'Click to enable background music'; 
+      } else { 
+        backgroundMusic.play().then(() => { 
+          musicIcon.classList.replace('fa-play', 'fa-pause'); 
+          musicInfo.textContent = 'Playing: Ancore Theme'; 
+        }).catch(err => { 
+          musicInfo.textContent = 'Click again to enable music'; 
+          console.log('Audio play failed:', err); 
+        }); 
+      }
       playing = !playing;
     });
 
     // Year
     document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
-</body>`
 
+    // Animate stats
+    function animateValue(element, start, end, duration) {
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        element.innerHTML = Math.floor(progress * (end - start) + start) + '+';
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    // Animate stats when they come into view
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          animateValue(document.getElementById('user-count'), 0, 1000, 2000);
+          animateValue(document.getElementById('group-count'), 0, 5000, 2500);
+        }
+      });
+    });
+
+    observer.observe(document.querySelector('.stats'));
+
+    // Loading states for buttons
+    function setButtonLoading(button, isLoading) {
+      if (isLoading) {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+        button.disabled = true;
+        button.classList.add('btn-loading');
+      } else {
+        const originalText = button.getAttribute('data-original-text') || button.innerHTML;
+        button.innerHTML = originalText;
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+      }
+    }
+
+    // Store original button text
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.setAttribute('data-original-text', btn.innerHTML);
+    });
+  </script>
+</body>
 </html>
