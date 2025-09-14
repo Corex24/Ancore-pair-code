@@ -337,24 +337,18 @@
     const sessionIdText = document.getElementById("session-id-text");
     
     let currentSessionId = null;
+    let backendSessionId = null; // Store the backend session ID
     let statusCheckInterval = null;
     
-    // Generate a session ID for tracking
-    function generateSessionId() {
-      let sessionId = localStorage.getItem('ancore_pair_session_id');
-      if (!sessionId) {
-        sessionId = 'pair_' + Math.random().toString(36).substring(2, 15);
-        localStorage.setItem('ancore_pair_session_id', sessionId);
-      }
-      return sessionId;
-    }
-    
-    // Check connection status
+    // Check connection status using backend session ID
     async function checkConnectionStatus() {
+      if (!backendSessionId) return; // Don't check if we don't have the session ID
+      
       try {
-        const sessionId = generateSessionId();
-        const response = await fetch(`/code/status?sessionId=${sessionId}`);
+        const response = await fetch(`/code/status?sessionId=${backendSessionId}`);
         const data = await response.json();
+        
+        console.log('Status check response:', data);
         
         if (data.connected && data.sessionId) {
           // Connection successful!
@@ -411,6 +405,12 @@
       statusMessage.style.display = "none";
       sessionInfo.style.display = "none";
       
+      // Clear any existing status check
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+        statusCheckInterval = null;
+      }
+      
       let raw = numberInput.value.trim();
       if (!raw) {
         statusMessage.textContent = "❗ Please enter your WhatsApp number with country code";
@@ -440,10 +440,17 @@
       statusMessage.style.display = "block";
       
       try {
+        console.log('Requesting pairing code for number:', num);
+        
         const response = await fetch(`/code?number=${num}`);
         const data = await response.json();
         
-        if (data.code) {
+        console.log('Pairing response:', data);
+        
+        if (data.success && data.code) {
+          // Store the backend session ID for status checking
+          backendSessionId = data.sessionId;
+          
           pairResult.innerHTML = `
             <p style="color: var(--text-secondary); margin-bottom: 8px;">Enter this code in WhatsApp:</p>
             <div class="pair-code" id="pair-code" onclick="copyPairCode()">
@@ -454,19 +461,40 @@
             </p>
           `;
           
+          statusMessage.textContent = "Code generated! Enter it in WhatsApp to connect.";
+          statusMessage.className = "status-message status-success";
+          
           // Start checking connection status
           statusCheckInterval = setInterval(checkConnectionStatus, 3000);
         } else {
           throw new Error(data.error || "No code received");
         }
       } catch (err) {
-        statusMessage.textContent = "⚠️ Error generating pair code. Please try again.";
-        statusMessage.className = "status-message status-error";
         console.error("Error:", err);
+        const errorMessage = err.message || "Error generating pair code";
+        
+        statusMessage.textContent = `⚠️ ${errorMessage}. Please try again.`;
+        statusMessage.className = "status-message status-error";
+        
+        // Show more specific error messages
+        if (errorMessage.includes('country code')) {
+          statusMessage.textContent = "❌ Invalid phone number. Make sure to include your country code (e.g., 234 for Nigeria, 1 for USA)";
+        } else if (errorMessage.includes('timeout')) {
+          statusMessage.textContent = "⏱️ Request timeout. Please check your internet connection and try again.";
+        } else if (errorMessage.includes('registered')) {
+          statusMessage.textContent = "📱 This number is already linked to another WhatsApp session.";
+        }
       } finally {
         submitBtn.disabled = false;
       }
     });
+    
+    // Clean up intervals when page unloads
+    window.addEventListener('beforeunload', () => {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    });
   </script>
 </body>
-</html>
+  </html>
