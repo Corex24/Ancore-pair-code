@@ -317,7 +317,7 @@
       <div class="qr-loading" id="qr-loading">
         <i class="fas fa-spinner"></i>
       </div>
-      <img id="qr-image" src="/server" alt="WhatsApp Login QR Code" onload="hideLoader()" onerror="handleImageError()">
+      <img id="qr-image" src="/server/qr" alt="WhatsApp Login QR Code" onload="hideLoader()" onerror="handleImageError()">
     </div>
     
     <h2 id="main-title">ANCORE QR CODE</h2>
@@ -443,7 +443,7 @@
     function refreshQRCode() {
       qrImage.style.opacity = '0.5';
       qrLoading.style.display = 'flex';
-      qrImage.src = '/server?t=' + new Date().getTime(); // Cache busting
+      qrImage.src = '/server/qr?t=' + new Date().getTime(); // Cache busting
       statusMessage.textContent = "Generating new QR code...";
       statusMessage.className = "status-message status-success";
     }
