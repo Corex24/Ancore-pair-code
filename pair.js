@@ -153,7 +153,7 @@ router.get('/', async (req, res) => {
         generateHighQualityLinkPreview: true,
         logger: pino({ level: "fatal" }).child({ level: "fatal" }),
         syncFullHistory: false,
-        browser: Browsers.chrome("Windows")
+        browser: Browsers.ubuntu('Ancore')
       });
 
       // Request pairing code if not registered
