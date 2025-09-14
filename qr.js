@@ -1,62 +1,33 @@
-const {
-  default: makeWASocket,
-  useMultiFileAuthState,
-  delay,
-  makeCacheableSignalKeyStore,
-  Browsers
-} = require('@whiskeysockets/baileys');
+const fs = require('fs');
+const QRCode = require('qrcode');
+const pino = require('pino');
+const express = require('express');
 const { upload } = require('./mega');
 const { makeid } = require('./gen-id');
-const express = require('express');
-const fs = require('fs');
-const router = express.Router();
-const pino = require("pino");
+const {
+  default: makeWASocket,
+  Browsers,
+  delay,
+  useMultiFileAuthState
+} = require('@whiskeysockets/baileys');
 
-// Store active sessions for status checking
+const router = express.Router();
+
+// Store active sessions
 const activeSessions = new Map();
 
-// Remove temporary files
 function removeFile(filePath) {
   try {
     if (!fs.existsSync(filePath)) return false;
     fs.rmSync(filePath, { recursive: true, force: true });
     return true;
   } catch (e) {
-    console.error('Error deleting file:', e);
+    console.log('Error deleting file:', e);
     return false;
   }
 }
 
-// Function to validate and format international phone numbers
-function validateAndFormatPhoneNumber(number) {
-  // Remove all non-digit characters
-  const cleaned = number.replace(/[^0-9]/g, '');
-  
-  // Check if the number is empty
-  if (!cleaned) {
-    return { valid: false, error: 'Phone number is required' };
-  }
-  
-  // Check if the number already has a country code (starts with digits 1-9)
-  if (cleaned.match(/^[1-9]/)) {
-    // Number already has country code, validate length
-    if (cleaned.length < 8 || cleaned.length > 15) {
-      return { 
-        valid: false, 
-        error: 'Invalid phone number length. Should be between 8-15 digits including country code' 
-      };
-    }
-    return { valid: true, formatted: cleaned };
-  }
-  
-  // If we reach here, the number might be missing country code
-  return { 
-    valid: false, 
-    error: 'Phone number must include country code (e.g., 1 for US, 44 for UK, 91 for India)' 
-  };
-}
-
-// Status endpoint for frontend to check connection status
+// Status endpoint
 router.get('/status', (req, res) => {
   const sessionId = req.query.sessionId;
   
@@ -72,7 +43,7 @@ router.get('/status', (req, res) => {
   if (sessionData && sessionData.connected) {
     res.json({
       connected: true,
-      sessionId: sessionData.finalSessionId,
+      sessionId: sessionData.sessionId,
       userJid: sessionData.userJid,
       timestamp: sessionData.timestamp
     });
@@ -86,10 +57,7 @@ router.get('/status', (req, res) => {
 
 router.get('/', async (req, res) => {
   const id = makeid();
-  let num = req.query.number;
-
-  console.log('Pairing request started with ID:', id, 'Number:', num);
-
+  
   // Ensure temp directory exists
   const tempDir = './temp';
   if (!fs.existsSync(tempDir)) {
@@ -101,239 +69,199 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: 'Failed to create temp directory' });
     }
   }
-
-  // Validate phone number
-  if (!num) {
-    return res.status(400).json({ error: 'Phone number is required' });
-  }
-
-  // Validate and format phone number
-  const validationResult = validateAndFormatPhoneNumber(num);
-  if (!validationResult.valid) {
-    return res.status(400).json({ error: validationResult.error });
-  }
   
-  const formattedNumber = validationResult.formatted;
-  console.log('Formatted number:', formattedNumber);
-
-  // Store initial session data for status tracking
+  console.log('Starting QR generation with ID:', id);
+  
+  // Store initial session data
   activeSessions.set(id, {
     connected: false,
-    finalSessionId: null,
+    sessionId: null,
     userJid: null,
-    timestamp: Date.now(),
-    phoneNumber: formattedNumber
+    timestamp: Date.now()
   });
 
-  // Set timeout for the entire process
-  const timeout = setTimeout(() => {
-    if (!res.headersSent) {
-      console.log('Pairing process timeout for session:', id);
-      res.status(408).json({ error: 'Pairing process timeout - please try again' });
-    }
-    activeSessions.delete(id);
-    removeFile('./temp/' + id);
-  }, 60000); // 60 seconds timeout
-
-  async function ANCORE_PAIR() {
-    console.log('Starting ANCORE_PAIR for session:', id);
+  async function ANCORE_MAIN() {
+    console.log('Initializing WhatsApp connection...');
     
     try {
       const { state, saveCreds } = await useMultiFileAuthState('./temp/' + id);
       
-      const sock = makeWASocket({
-        auth: {
-          creds: state.creds,
-          keys: makeCacheableSignalKeyStore(
-            state.keys,
-            pino({ level: "fatal" }).child({ level: "fatal" })
-          )
-        },
+      let sock = makeWASocket({
+        auth: state,
         printQRInTerminal: false,
-        generateHighQualityLinkPreview: true,
-        logger: pino({ level: "fatal" }).child({ level: "fatal" }),
-        syncFullHistory: false,
-        browser: Browsers.chrome("Windows")
+        logger: pino({ level: "silent" }),
+        browser: Browsers.ubuntu('Ancore'),
+        generateHighQualityLinkPreview: true
       });
 
-      // Request pairing code if not registered
-      if (!sock.authState.creds.registered) {
-        console.log('Requesting pairing code for:', formattedNumber);
-        await delay(1500);
-        
-        try {
-          const code = await sock.requestPairingCode(formattedNumber);
-          console.log('Pairing code generated successfully:', code);
-          
-          if (!res.headersSent) {
-            clearTimeout(timeout);
-            return res.json({ 
-              success: true,
-              code,
-              message: 'Pairing code generated successfully',
-              sessionId: id, // Return backend session ID to frontend
-              instructions: 'Enter this code in WhatsApp > Linked Devices > Link a Device'
-            });
-          }
-        } catch (error) {
-          console.error('Error requesting pairing code:', error);
-          activeSessions.delete(id);
-          removeFile('./temp/' + id);
-          if (!res.headersSent) {
-            clearTimeout(timeout);
-            return res.status(500).json({ 
-              error: 'Failed to generate pairing code',
-              details: error.message,
-              note: 'Make sure your phone number includes the correct country code'
-            });
-          }
-        }
-      } else {
-        console.log('Device already registered');
-        if (!res.headersSent) {
-          clearTimeout(timeout);
-          return res.status(400).json({ 
-            error: 'Device already registered',
-            message: 'This number is already linked to a WhatsApp session'
-          });
-        }
-      }
-
-      // Handle credentials updates
       sock.ev.on('creds.update', saveCreds);
 
-      // Handle connection updates
-      sock.ev.on("connection.update", async (update) => {
-        const { connection, lastDisconnect } = update;
-        console.log('Connection update for session', id, ':', connection);
+      sock.ev.on("connection.update", async (s) => {
+        const { connection, lastDisconnect, qr } = s;
+        
+        console.log('Connection update:', { connection, hasQR: !!qr });
+
+        if (qr && !res.headersSent) {
+          console.log('QR code received, generating image...');
+          try {
+            // Set proper headers for QR code image
+            res.setHeader('Content-Type', 'image/png');
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            
+            const qrBuffer = await QRCode.toBuffer(qr, {
+              errorCorrectionLevel: 'H',
+              margin: 2,
+              width: 300,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            });
+            
+            console.log('QR code generated successfully, buffer size:', qrBuffer.length);
+            return res.end(qrBuffer);
+          } catch (qrError) {
+            console.error("QR generation error:", qrError);
+            if (!res.headersSent) {
+              res.status(500).json({ error: "QR generation failed", details: qrError.message });
+            }
+            return;
+          }
+        }
 
         if (connection === "open") {
-          console.log(`Connected successfully to ${sock.user.id}`);
-          
+          console.log('WhatsApp connection established for user:', sock.user.id);
           try {
-            await delay(3000); // Wait for connection to stabilize
-            const rf = __dirname + `/temp/${id}/creds.json`;
+            await delay(3000);
+            let rf = __dirname + `/temp/${id}/creds.json`;
 
             if (!fs.existsSync(rf)) {
               console.error('Credentials file not found:', rf);
               throw new Error('Credentials file not found');
             }
 
-            // Upload session to MEGA
-            console.log('Uploading session to MEGA...');
+            console.log('Uploading credentials to MEGA...');
             const mega_url = await upload(fs.createReadStream(rf), `${sock.user.id}.json`);
-            const string_session = mega_url.replace('https://mega.nz/file/', '');
-            let ancore = "Ancore_" + string_session;
+            let md = "Ancore_" + mega_url.replace('https://mega.nz/file/', '');
 
-            // Update session data with final session ID
+            // Update session data with the actual session ID
             activeSessions.set(id, {
               connected: true,
-              finalSessionId: ancore,
+              sessionId: md,
               userJid: sock.user.id,
-              timestamp: Date.now(),
-              phoneNumber: formattedNumber
+              timestamp: Date.now()
             });
 
-            console.log('Session created successfully:', ancore);
+            console.log('Session created successfully:', md);
 
             // Send session ID to user
-            await sock.sendMessage(sock.user.id, { text: ancore });
+            await sock.sendMessage(sock.user.id, { text: md });
 
             // Send welcome message
-            const welcomeMessage = `> *⚡ Welcome to Ancore💙!*
+            const desc = `> *⚡ Welcome to Ancore💙!*
 
 ——————————————————
 *Your Session Id has been successfully created*
-*Keep Session Id Safe!* Don't share Session Id with anyone!
+*Keep Session Id Safe!* Don't share it with anyone!
 ——————————————————
-                           
 > *STAY UPDATED ⚡:*
-Telegram Group:
-https://t.me/+UfO-wlwfOaM3NmE0
-                        
-WhatsApp Channel:
-https://whatsapp.com/channel/0029Vb6nHar2phHORBFhOn3p
-
+Telegram Group: https://t.me/+UfO-wlwfOaM3NmE0
+WhatsApp Channel: https://whatsapp.com/channel/0029Vb6nHar2phHORBFhOn3p
 ——————————————————
 > *Ancore Repo:*
 https://github.com/Corex24/Ancore.git
-
 ——————————————————
-Having problem deploying *Ancore*?
-Message *Corex*
-http://wa.me/2348036869669 
-OR
-http://t.me/corex2410
+Having issues deploying Ancore?
+Message *Corex*:
+http://wa.me/2348036869669 OR http://t.me/corex2410
 
 (c) Created by Corex with 💙`;
 
-            await sock.sendMessage(sock.user.id, { text: welcomeMessage });
+            await sock.sendMessage(sock.user.id, { text: desc });
             console.log('Welcome message sent successfully');
-
-          } catch (uploadError) {
-            console.error("Error uploading session file:", uploadError);
-            activeSessions.delete(id);
+          } catch (error) {
+            console.error("Error in session creation:", error);
           }
 
-          // Cleanup
+          // Cleanup connection
           try {
             await delay(2000);
             await sock.ws.close();
           } catch (closeError) {
-            console.error('Error closing connection:', closeError);
+            console.error("Error closing connection:", closeError);
           }
+          
+          // Clean up temp files
           removeFile('./temp/' + id);
           console.log(`${sock.user.id} CONNECTED ✅ CLEANED UP`);
-        } 
-        else if (connection === "close") {
+        } else if (connection === "close") {
+          const shouldRetry = lastDisconnect?.error?.output?.statusCode !== 401;
           const statusCode = lastDisconnect?.error?.output?.statusCode;
-          console.log('Connection closed with status:', statusCode);
           
-          if (statusCode === 401) {
-            console.log('Authentication failed, not reconnecting');
+          console.log('Connection closed:', { statusCode, shouldRetry });
+          
+          if (shouldRetry) {
+            console.log('Retrying connection in 10 seconds...');
+            await delay(10000);
+            ANCORE_MAIN().catch(console.error);
+          } else {
+            console.log('Not retrying - authentication failed');
             removeFile('./temp/' + id);
             activeSessions.delete(id);
-          } else if (statusCode !== 440) { // Don't reconnect on connection replaced
-            console.log('Connection closed, attempting to reconnect...');
-            await delay(5000);
-            ANCORE_PAIR().catch(console.error);
+            if (!res.headersSent) {
+              res.status(401).json({ error: "Authentication failed" });
+            }
           }
         }
       });
 
       // Handle socket errors
       sock.ev.on('connection.error', (error) => {
-        console.error('Socket connection error for session', id, ':', error);
+        console.error('Socket connection error:', error);
       });
 
     } catch (err) {
-      console.error("Error in ANCORE_PAIR:", err);
+      console.error("Service error:", err);
       removeFile('./temp/' + id);
       activeSessions.delete(id);
       if (!res.headersSent) {
-        clearTimeout(timeout);
         res.status(500).json({ 
-          error: 'Service unavailable', 
-          details: err.message 
+          error: "Service unavailable", 
+          details: err.message,
+          stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
         });
       }
     }
   }
 
-  await ANCORE_PAIR();
+  // Add timeout for QR generation
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.log('QR generation timeout after 60 seconds');
+      res.status(408).json({ error: "QR generation timeout - please try again" });
+    }
+    activeSessions.delete(id);
+    removeFile('./temp/' + id);
+  }, 60000); // 60 seconds timeout
+
+  try {
+    await ANCORE_MAIN();
+  } catch (error) {
+    console.error('ANCORE_MAIN error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ 
+        error: "Internal server error", 
+        details: error.message 
+      });
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
 });
 
-// Health check endpoint
-router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    service: 'WhatsApp Pairing Service',
-    timestamp: new Date().toISOString(),
-    activeSessions: activeSessions.size
-  });
-});
-
-// Clean up old sessions periodically (older than 1 hour)
+// Clean up old sessions periodically
 setInterval(() => {
   const now = Date.now();
   const oneHour = 60 * 60 * 1000;
