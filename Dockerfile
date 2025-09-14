@@ -5,13 +5,12 @@ FROM node:lts-buster
 ENV NODE_ENV=production
 ENV PORT=5000
 
-# Install system dependencies
+# Install system dependencies (FIXED)
 RUN apt-get update && \
     apt-get install -y \
     ffmpeg \
     imagemagick \
     webp \
-    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
